@@ -49,6 +49,16 @@ private struct IntervalsView: View {
             }
             .help(NSLocalizedString("IntervalsView.workIntervalsInSet.help",
                                     comment: "Work intervals in set hint"))
+            Stepper(value: $timer.dailyGoal, in: 1 ... 30) {
+                HStack {
+                    Text(NSLocalizedString("IntervalsView.dailyGoal.label",
+                                           comment: "Daily goal label"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("\(timer.dailyGoal)")
+                }
+            }
+            .help(NSLocalizedString("IntervalsView.dailyGoal.help",
+                                    comment: "Daily goal hint"))
             Spacer().frame(minHeight: 0)
         }
         .padding(4)
@@ -197,6 +207,28 @@ struct TBPopoverView: View {
                 }
             }
 
+            VStack(alignment: .leading, spacing: 3) {
+                HStack {
+                    if timer.dailyCompletedCount >= timer.dailyGoal {
+                        Text(NSLocalizedString("TBPopoverView.dailyGoal.achieved", comment: "Goal Achieved"))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.green)
+                    } else {
+                        Text(NSLocalizedString("TBPopoverView.dailyGoal.title", comment: "Daily Goal"))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Text("\(timer.dailyCompletedCount) / \(timer.dailyGoal) 🍅")
+                        .font(.system(size: 11, weight: .medium).monospacedDigit())
+                        .foregroundColor(.secondary)
+                }
+                ProgressView(value: min(1.0, Double(timer.dailyCompletedCount) / Double(max(1, timer.dailyGoal))))
+                    .progressViewStyle(.linear)
+                    .accentColor(timer.dailyCompletedCount >= timer.dailyGoal ? .green : .red)
+            }
+            .padding(.vertical, 2)
+
             Picker("", selection: $activeChildView) {
                 Text(NSLocalizedString("TBPopoverView.intervals.label",
                                        comment: "Intervals label")).tag(ChildView.intervals)
@@ -253,6 +285,9 @@ struct TBPopoverView: View {
             )
         #endif
             .padding(12)
+            .onAppear {
+                timer.checkDayRollover()
+            }
     }
 }
 

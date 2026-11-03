@@ -5,6 +5,8 @@
 "IntervalsView.longRestIntervalLength.help" = "작업 시간을 끝낸 후 취하는 긴 휴식 시간";
 "IntervalsView.workIntervalsInSet.label" = "작업 시간 반복 횟수:";
 "IntervalsView.workIntervalsInSet.help" = "긴 휴식 시간 전까지 작업 시간을 몇 번 반복 할 것인지";
+"IntervalsView.dailyGoal.label" = "일일 목표:";
+"IntervalsView.dailyGoal.help" = "하루 완료할 뽀모도로 목표 횟수";
 "SettingsView.shortcut.label" = "시작 / 중지";
 "SettingsView.shortcut.pauseResume.label" = "일시정지 / 재개";
 "SettingsView.stopAfterBreak.label" = "휴식 후 중지";
@@ -17,6 +19,8 @@
 "TBPopoverView.stop.label" = "중지";
 "TBPopoverView.pause.label" = "일시정지";
 "TBPopoverView.resume.label" = "재개";
+"TBPopoverView.dailyGoal.title" = "일일 목표";
+"TBPopoverView.dailyGoal.achieved" = "🎉 목표 달성!";
 "TBPopoverView.intervals.label" = "간격";
 "TBPopoverView.settings.label" = "설정";
 "TBPopoverView.sounds.label" = "사운드";
@@ -28,3 +32,5 @@
 "TBTimer.onRestStart.skip.title" = "건너뛰기";
 "TBTimer.onRestFinish.title" = "휴식 시간 종료";
 "TBTimer.onRestFinish.body" = "다시 작업을 시작하세요!";
+"TBTimer.goalReached.title" = "일일 목표 달성! 🎉";
+"TBTimer.goalReached.body" = "축하합니다! 오늘 목표인 뽀모도로 %d개를 완료했습니다.";

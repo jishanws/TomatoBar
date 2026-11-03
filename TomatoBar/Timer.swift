@@ -9,6 +9,9 @@ class TBTimer: ObservableObject {
     @AppStorage("shortRestIntervalLength") var shortRestIntervalLength = 5
     @AppStorage("longRestIntervalLength") var longRestIntervalLength = 15
     @AppStorage("workIntervalsInSet") var workIntervalsInSet = 4
+    @AppStorage("dailyGoal") var dailyGoal: Int = 8
+    @AppStorage("dailyCompletedCount") var dailyCompletedCount: Int = 0
+    @AppStorage("dailyCompletedDate") private var dailyCompletedDate: String = ""
     // This preference is "hidden"
     @AppStorage("overrunTimeLimit") var overrunTimeLimit = -60.0
 
@@ -104,6 +107,7 @@ class TBTimer: ObservableObject {
         KeyboardShortcuts.onKeyUp(for: .startStopTimer, action: startStop)
         KeyboardShortcuts.onKeyUp(for: .pauseResumeTimer, action: pauseResume)
         notificationCenter.setActionHandler(handler: onNotificationAction)
+        checkDayRollover()
 
         let aem: NSAppleEventManager = NSAppleEventManager.shared()
         aem.setEventHandler(self,
@@ -266,6 +270,40 @@ class TBTimer: ObservableObject {
     private func onWorkFinish(context _: TBStateMachine.Context) {
         consecutiveWorkIntervals += 1
         player.playDing()
+
+        checkDayRollover()
+        dailyCompletedCount += 1
+        recordDailyHistory(date: todayDateString(), count: dailyCompletedCount)
+
+        if dailyCompletedCount == dailyGoal {
+            notificationCenter.send(
+                title: NSLocalizedString("TBTimer.goalReached.title", comment: "Daily goal achieved"),
+                body: String(format: NSLocalizedString("TBTimer.goalReached.body", comment: "Goal body"), dailyGoal),
+                category: .restStarted
+            )
+        }
+    }
+
+    func todayDateString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
+    }
+
+    func checkDayRollover() {
+        let today = todayDateString()
+        if dailyCompletedDate.isEmpty {
+            dailyCompletedDate = today
+        } else if dailyCompletedDate != today {
+            dailyCompletedDate = today
+            dailyCompletedCount = 0
+        }
+    }
+
+    private func recordDailyHistory(date: String, count: Int) {
+        var history = UserDefaults.standard.dictionary(forKey: "dailyHistory") as? [String: Int] ?? [:]
+        history[date] = count
+        UserDefaults.standard.set(history, forKey: "dailyHistory")
     }
 
     private func onWorkEnd(context _: TBStateMachine.Context) {

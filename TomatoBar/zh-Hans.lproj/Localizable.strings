@@ -5,6 +5,8 @@
 "IntervalsView.longRestIntervalLength.help" = "在完成一组工作后的长休息时长";
 "IntervalsView.workIntervalsInSet.label" = "一组中工作的次数:";
 "IntervalsView.workIntervalsInSet.help" = "每组在长时间休息后的工作次数";
+"IntervalsView.dailyGoal.label" = "每日目标:";
+"IntervalsView.dailyGoal.help" = "每天完成番茄钟的目标数量";
 "SettingsView.shortcut.label" = "开始 / 停止";
 "SettingsView.shortcut.pauseResume.label" = "暂停 / 继续";
 "SettingsView.stopAfterBreak.label" = "在休息后停止";
@@ -17,6 +19,8 @@
 "TBPopoverView.stop.label" = "停止";
 "TBPopoverView.pause.label" = "暂停";
 "TBPopoverView.resume.label" = "继续";
+"TBPopoverView.dailyGoal.title" = "每日目标";
+"TBPopoverView.dailyGoal.achieved" = "🎉 达成目标!";
 "TBPopoverView.intervals.label" = "时长";
 "TBPopoverView.settings.label" = "设置";
 "TBPopoverView.sounds.label" = "声音";
@@ -28,3 +32,5 @@
 "TBTimer.onRestStart.skip.title" = "跳过";
 "TBTimer.onRestFinish.title" = "休息结束";
 "TBTimer.onRestFinish.body" = "继续努力!";
+"TBTimer.goalReached.title" = "每日目标达成! 🎉";
+"TBTimer.goalReached.body" = "恭喜你! 今天已完成 %d 个番茄钟目标。";

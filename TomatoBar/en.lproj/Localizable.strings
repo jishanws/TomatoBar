@@ -5,6 +5,8 @@
 "IntervalsView.longRestIntervalLength.help" = "Duration of the lengthy break, taken after finishing work interval set";
 "IntervalsView.workIntervalsInSet.label" = "Work intervals in a set:";
 "IntervalsView.workIntervalsInSet.help" = "Number of working intervals in the set, after which a lengthy break taken";
+"IntervalsView.dailyGoal.label" = "Daily goal:";
+"IntervalsView.dailyGoal.help" = "Target number of completed Pomodoros per day";
 "SettingsView.shortcut.label" = "Start / Stop";
 "SettingsView.shortcut.pauseResume.label" = "Pause / Resume";
 "SettingsView.stopAfterBreak.label" = "Stop after break";
@@ -17,6 +19,8 @@
 "TBPopoverView.stop.label" = "Stop";
 "TBPopoverView.pause.label" = "Pause";
 "TBPopoverView.resume.label" = "Resume";
+"TBPopoverView.dailyGoal.title" = "Daily Goal";
+"TBPopoverView.dailyGoal.achieved" = "🎉 Goal Achieved!";
 "TBPopoverView.intervals.label" = "Intervals";
 "TBPopoverView.settings.label" = "Settings";
 "TBPopoverView.sounds.label" = "Sounds";
@@ -28,3 +32,5 @@
 "TBTimer.onRestStart.skip.title" = "Skip";
 "TBTimer.onRestFinish.title" = "Break is over";
 "TBTimer.onRestFinish.body" = "Keep up the good work!";
+"TBTimer.goalReached.title" = "Daily Goal Achieved! 🎉";
+"TBTimer.goalReached.body" = "Congratulations! You completed your target of %d Pomodoros today.";
