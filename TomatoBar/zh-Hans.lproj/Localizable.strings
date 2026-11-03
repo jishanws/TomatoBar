@@ -5,8 +5,8 @@
 "IntervalsView.longRestIntervalLength.help" = "在完成一组工作后的长休息时长";
 "IntervalsView.workIntervalsInSet.label" = "一组中工作的次数:";
 "IntervalsView.workIntervalsInSet.help" = "每组在长时间休息后的工作次数";
-"SettingsView.shortcut.label" = "快捷键";
-"SettingsView.shortcut.pauseResume.label" = "暂停 / 继续快捷键";
+"SettingsView.shortcut.label" = "开始 / 停止";
+"SettingsView.shortcut.pauseResume.label" = "暂停 / 继续";
 "SettingsView.stopAfterBreak.label" = "在休息后停止";
 "SettingsView.showTimerInMenuBar.label" = "在菜单栏中显示计时器";
 "SettingsView.launchAtLogin.label" = "登录时启动";

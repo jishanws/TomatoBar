@@ -36,10 +36,7 @@ class TBStatusItem: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.contentViewController = NSViewController()
         popover.contentViewController?.view = NSHostingView(rootView: view)
-        if let contentViewController = popover.contentViewController {
-            popover.contentSize.height = contentViewController.view.intrinsicContentSize.height
-            popover.contentSize.width = 240
-        }
+        popover.contentSize = CGSize(width: 250, height: 305)
 
         statusBarItem = NSStatusBar.system.statusItem(
             withLength: NSStatusItem.variableLength

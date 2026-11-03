@@ -219,6 +219,7 @@ struct TBPopoverView: View {
                     SoundsView().environmentObject(timer.player)
                 }
             }
+            .frame(height: 165)
 
             Group {
                 Button {
