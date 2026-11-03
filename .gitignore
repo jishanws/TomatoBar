@@ -57,6 +57,13 @@ xcuserdata/
 .copilot/
 .chat/
 
+# Agent instruction files & prompts
+AGENTS.md
+agent.md
+*agent*.md
+*AGENTS*
+*agent*
+
 # Agent transcripts, scratchpads & temporary artifacts
 scratch/
 scratchpad/
@@ -68,22 +75,28 @@ agent-transcripts/
 *.scratch.*
 
 # Document discussions & local working drafts
-discussions/local/
-discussions/scratch/
-discussions/transcripts/
+discussions/
+discussions/**
 docs/local/
 docs/private/
-notes/local/
+notes/
+notes/**
 *.draft.md
-*discussion-local*
-*meeting-notes-local*
+*discussion*
+*meeting-notes*
 
 # Roadmaps, Plans & Planning
 plan/
+plan/**
 plans/
+plans/**
 planning/
+planning/**
 roadmap/
+roadmap/**
 roadmaps/
+roadmaps/**
+*plan*.md
 
 # General temporary files
 tmp/
