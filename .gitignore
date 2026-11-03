@@ -1,2 +1,174 @@
-xcuserdata
+# ==========================================
+# Xcode & Apple Development
+# ==========================================
+# Build outputs and derived data
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.app
+
+# User-specific Xcode files
+xcuserdata/
+*.xcuserdatad/
+*.xcuserstate
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Xcode workspace and project user data
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/**/xcuserdata/
+*.xcworkspace/**/xcuserdata/
+*.xcscmblueprint
+**/xcshareddata/WorkspaceSettings.xcsettings
+
+# Swift Package Manager
+.build/
+.swiftpm/xcode/xcuserdata/
+.swiftpm/configuration/
+
+# SwiftLint & Code Analysis Cache
+.swiftlint-cache/
+
+# ==========================================
+# AI Agents, Discussions & Local Scratchpads
+# ==========================================
+# Agent configurations, memory & state
+.agent/
+.agents/
+.gemini/
+.claude/
+.cursor/
+.cursorrules.local
+.windsurf/
+.cline/
+.roo/
+.aider*
+.copilot/
+.chat/
+
+# Agent transcripts, scratchpads & temporary artifacts
+scratch/
+scratchpad/
+brain/
+transcripts/
+agent-transcripts/
+*.agent-scratch.*
+*.agent.md
+*.scratch.*
+
+# Document discussions & local working drafts
+discussions/local/
+discussions/scratch/
+discussions/transcripts/
+docs/local/
+docs/private/
+notes/local/
+*.draft.md
+*discussion-local*
+*meeting-notes-local*
+
+# Roadmaps, Plans & Planning
+plan/
+plans/
+planning/
+roadmap/
+roadmaps/
+
+# General temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# ==========================================
+# Security, Secrets & Local Credentials
+# ==========================================
+# Environment variables
+.env
+.env.*
+.env*.local
+!.env.example
+!.env.template
+!.env.sample
+
+# Private keys, certificates, keystores
+*.pem
+*.key
+*.pfx
+*.p12
+*.pkcs12
+*.crt
+*.csr
+*.cer
+*.der
+*.kdbx
+
+# Code signing & provisioning profiles
+*.mobileprovision
+*.provisionprofile
+
+# Service accounts & API credentials
+*service-account*.json
+*credentials*.json
+*client_secret*.json
+*.publishsettings
+
+# Auth tokens & local tool configs
+.npmrc
+.pypirc
+.netrc
+*.htpasswd
+
+# Local databases & dumps
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sql
+*.dump
+
+# ==========================================
+# Operating System & Editor Files
+# ==========================================
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Editors & IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo

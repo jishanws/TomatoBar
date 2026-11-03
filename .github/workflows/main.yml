@@ -7,6 +7,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-15
@@ -15,6 +18,7 @@ jobs:
       - name: Delete old prerelease
         if: github.ref_type == 'branch'
         uses: dev-drprasad/delete-tag-and-release@v1.1
+        continue-on-error: true
         with:
           delete_release: true
           tag_name: prerelease
@@ -26,43 +30,36 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set version for tag
-        if: github.ref_type == 'tag'
-        run: echo "version=$(git describe --tags --match 'v*')" >> $GITHUB_ENV
-
-      - name: Set version for branch
-        if: github.ref_type == 'branch'
-        run: echo "version=$(git describe --tags)" >> $GITHUB_ENV
-
-      - name: Import signing certificate
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.CODESIGN_CERT_BASE64 }}
-          p12-password: ${{ secrets.CODESIGN_CERT_PASSWORD }}
-
-      - name: Trust signing certificate
+      - name: Set version
         run: |
-          echo "${{ secrets.CODESIGN_CERT_PEM_BASE64 }}" | base64 -d > /tmp/ci-cert.pem
-          sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain /tmp/ci-cert.pem
-          rm /tmp/ci-cert.pem
+          VERSION=$(git describe --tags --always 2>/dev/null || echo "1.0.0")
+          echo "version=${VERSION}" >> $GITHUB_ENV
 
       - name: Build
         run: |
           BUILT_PRODUCTS_DIR=$(xcodebuild -project TomatoBar.xcodeproj -scheme TomatoBar -configuration Release -showBuildSettings | awk '/^ *BUILT_PRODUCTS_DIR = / {print $3}')
-          xcodebuild build -project TomatoBar.xcodeproj -scheme TomatoBar -configuration Release MARKETING_VERSION=${{github.ref_name}} CODE_SIGN_IDENTITY="CI Code Signing" CODE_SIGN_STYLE=Manual ONLY_ACTIVE_ARCH=NO
+          xcodebuild build -project TomatoBar.xcodeproj -scheme TomatoBar -configuration Release MARKETING_VERSION=${{ env.version }} CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Automatic ONLY_ACTIVE_ARCH=NO
+          codesign --force --deep -s - "$BUILT_PRODUCTS_DIR/TomatoBar.app"
           cp -r "$BUILT_PRODUCTS_DIR/TomatoBar.app" .
-          zip -r "TomatoBar-${{env.version}}.zip" "TomatoBar.app"
+          zip -r "TomatoBar-${{ env.version }}.zip" "TomatoBar.app"
 
-      - name: Release
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TomatoBar-${{ env.version }}
+          path: TomatoBar-${{ env.version }}.zip
+
+      - name: Release (Tag)
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          files: TomatoBar-${{env.version}}.zip
+          files: TomatoBar-${{ env.version }}.zip
 
-      - name: Prerelease
+      - name: Prerelease (Branch)
         if: github.ref_type == 'branch'
         uses: softprops/action-gh-release@v2
+        continue-on-error: true
         with:
           tag_name: prerelease
           prerelease: true
-          files: TomatoBar-${{env.version}}.zip
+          files: TomatoBar-${{ env.version }}.zip
