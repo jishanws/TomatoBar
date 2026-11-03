@@ -4,6 +4,7 @@ import SwiftUI
 
 extension KeyboardShortcuts.Name {
     static let startStopTimer = Self("startStopTimer")
+    static let pauseResumeTimer = Self("pauseResumeTimer")
 }
 
 private struct IntervalsView: View {
@@ -63,6 +64,11 @@ private struct SettingsView: View {
             KeyboardShortcuts.Recorder(for: .startStopTimer) {
                 Text(NSLocalizedString("SettingsView.shortcut.label",
                                        comment: "Shortcut label"))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            KeyboardShortcuts.Recorder(for: .pauseResumeTimer) {
+                Text(NSLocalizedString("SettingsView.shortcut.pauseResume.label",
+                                       comment: "Pause / Resume shortcut label"))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Toggle(isOn: $timer.stopAfterBreak) {
@@ -131,35 +137,65 @@ private enum ChildView {
 
 struct TBPopoverView: View {
     @ObservedObject var timer = TBTimer()
-    @State private var buttonHovered = false
+    @State private var pauseButtonHovered = false
     @State private var activeChildView = ChildView.intervals
 
     private var startLabel = NSLocalizedString("TBPopoverView.start.label", comment: "Start label")
     private var stopLabel = NSLocalizedString("TBPopoverView.stop.label", comment: "Stop label")
+    private var pauseLabel = NSLocalizedString("TBPopoverView.pause.label", comment: "Pause label")
+    private var resumeLabel = NSLocalizedString("TBPopoverView.resume.label", comment: "Resume label")
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button {
-                timer.startStop()
-                TBStatusItem.shared.closePopover(nil)
-            } label: {
-                Text(timer.timer != nil ?
-                     (buttonHovered ? stopLabel : timer.timeLeftString) :
-                        startLabel)
-                    /*
-                      When appearance is set to "Dark" and accent color is set to "Graphite"
-                      "defaultAction" button label's color is set to the same color as the
-                      button, making the button look blank. #24
-                     */
-                    .foregroundColor(Color.white)
-                    .font(.system(.body).monospacedDigit())
-                    .frame(maxWidth: .infinity)
+            if !timer.state.isActive {
+                Button {
+                    timer.startStop()
+                    TBStatusItem.shared.closePopover(nil)
+                } label: {
+                    Text(startLabel)
+                        .foregroundColor(Color.white)
+                        .font(.system(.body).monospacedDigit())
+                        .frame(maxWidth: .infinity)
+                }
+                .controlSize(.large)
+                .keyboardShortcut(.defaultAction)
+            } else {
+                HStack(spacing: 6) {
+                    Button {
+                        timer.pauseResume()
+                    } label: {
+                        HStack(spacing: 4) {
+                            if timer.state.isPaused {
+                                Image(systemName: "play.fill")
+                                Text("\(resumeLabel) \(timer.timeLeftString)")
+                            } else {
+                                Image(systemName: "pause.fill")
+                                Text(pauseButtonHovered ? pauseLabel : timer.timeLeftString)
+                            }
+                        }
+                        .foregroundColor(Color.white)
+                        .font(.system(.body).monospacedDigit())
+                        .frame(maxWidth: .infinity)
+                    }
+                    .onHover { over in
+                        pauseButtonHovered = over
+                    }
+                    .controlSize(.large)
+
+                    Button {
+                        timer.startStop()
+                        TBStatusItem.shared.closePopover(nil)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "stop.fill")
+                            Text(stopLabel)
+                        }
+                        .foregroundColor(Color.white)
+                        .font(.system(.body).monospacedDigit())
+                    }
+                    .controlSize(.large)
+                }
             }
-            .onHover { over in
-                buttonHovered = over
-            }
-            .controlSize(.large)
-            .keyboardShortcut(.defaultAction)
 
             Picker("", selection: $activeChildView) {
                 Text(NSLocalizedString("TBPopoverView.intervals.label",
@@ -209,21 +245,12 @@ struct TBPopoverView: View {
             }
         }
         #if DEBUG
-            /*
-             After several hours of Googling and trying various StackOverflow
-             recipes I still haven't figured a reliable way to auto resize
-             popover to fit all it's contents (pull requests are welcome!).
-             The following code block is used to determine the optimal
-             geometry of the popover.
-             */
             .overlay(
                 GeometryReader { proxy in
                     debugSize(proxy: proxy)
                 }
             )
         #endif
-            /* Use values from GeometryReader */
-//            .frame(width: 240, height: 276)
             .padding(12)
     }
 }

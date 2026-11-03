@@ -16,35 +16,51 @@ class TBTimer: ObservableObject {
     public let player = TBPlayer()
     private var consecutiveWorkIntervals: Int = 0
     private var notificationCenter = TBNotificationCenter()
-    private var finishTime: Date!
+    private var finishTime: Date?
+    private var remainingTime: TimeInterval = 0
     private var timerFormatter = DateComponentsFormatter()
     @Published var timeLeftString: String = ""
     @Published var timer: DispatchSourceTimer?
+    @Published var state: TBStateMachineStates = .idle
 
     init() {
         /*
          * State diagram
          *
-         *                 start/stop
-         *       +--------------+-------------+
-         *       |              |             |
-         *       |  start/stop  |  timerFired |
-         *       V    |         |    |        |
-         * +--------+ |  +--------+  | +--------+
-         * | idle   |--->| work   |--->| rest   |
-         * +--------+    +--------+    +--------+
-         *   A                  A        |    |
-         *   |                  |        |    |
-         *   |                  +--------+    |
-         *   |  timerFired (!stopAfterBreak)  |
-         *   |             skipRest           |
-         *   |                                |
-         *   +--------------------------------+
-         *      timerFired (stopAfterBreak)
-         *
+         *                      start/stop
+         *       +------------------+------------------+
+         *       |                  |                  |
+         *       |  start/stop      |     timerFired   |
+         *       V    |             |       |          |
+         * +--------+ |  +--------+ |       | +--------+
+         * | idle   |--->| work   |-+       | | rest   |
+         * +--------+    +--------+         | +--------+
+         *   A            A   |             |   A   |
+         *   |            |   |             |   |   |
+         *   |  pauseResume   pauseResume   |   pauseResume
+         *   |            |   |             |   |   |
+         *   |            |   V             |   |   V
+         *   |       +------------+         | +------------+
+         *   |       | pausedWork |         | | pausedRest |
+         *   |       +------------+         | +------------+
+         *   |         |                    |   |
+         *   |         | startStop          |   | startStop / skipRest
+         *   +---------+                    |   |
+         *   |                              |   |
+         *   +------------------------------+---+
          */
         stateMachine.addRoutes(event: .startStop, transitions: [
-            .idle => .work, .work => .idle, .rest => .idle,
+            .idle => .work,
+            .work => .idle,
+            .rest => .idle,
+            .pausedWork => .idle,
+            .pausedRest => .idle,
+        ])
+        stateMachine.addRoutes(event: .pauseResume, transitions: [
+            .work => .pausedWork,
+            .pausedWork => .work,
+            .rest => .pausedRest,
+            .pausedRest => .rest,
         ])
         stateMachine.addRoutes(event: .timerFired, transitions: [.work => .rest])
         stateMachine.addRoutes(event: .timerFired, transitions: [.rest => .idle]) { _ in
@@ -53,7 +69,10 @@ class TBTimer: ObservableObject {
         stateMachine.addRoutes(event: .timerFired, transitions: [.rest => .work]) { _ in
             !self.stopAfterBreak
         }
-        stateMachine.addRoutes(event: .skipRest, transitions: [.rest => .work])
+        stateMachine.addRoutes(event: .skipRest, transitions: [
+            .rest => .work,
+            .pausedRest => .work,
+        ])
 
         /*
          * "Finish" handlers are called when time interval ended
@@ -62,10 +81,17 @@ class TBTimer: ObservableObject {
         stateMachine.addAnyHandler(.any => .work, handler: onWorkStart)
         stateMachine.addAnyHandler(.work => .rest, order: 0, handler: onWorkFinish)
         stateMachine.addAnyHandler(.work => .any, order: 1, handler: onWorkEnd)
+        stateMachine.addAnyHandler(.work => .pausedWork, handler: onPauseWork)
+        stateMachine.addAnyHandler(.rest => .pausedRest, handler: onPauseRest)
         stateMachine.addAnyHandler(.any => .rest, handler: onRestStart)
         stateMachine.addAnyHandler(.rest => .work, handler: onRestFinish)
         stateMachine.addAnyHandler(.any => .idle, handler: onIdleStart)
-        stateMachine.addAnyHandler(.any => .any, handler: { ctx in
+        stateMachine.addAnyHandler(.any => .any, handler: { [weak self] ctx in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                self.state = ctx.toState
+                self.updateTimeLeft()
+            }
             logger.append(event: TBLogEventTransition(fromContext: ctx))
         })
 
@@ -76,6 +102,7 @@ class TBTimer: ObservableObject {
         timerFormatter.zeroFormattingBehavior = .pad
 
         KeyboardShortcuts.onKeyUp(for: .startStopTimer, action: startStop)
+        KeyboardShortcuts.onKeyUp(for: .pauseResumeTimer, action: pauseResume)
         notificationCenter.setActionHandler(handler: onNotificationAction)
 
         let aem: NSAppleEventManager = NSAppleEventManager.shared()
@@ -105,6 +132,16 @@ class TBTimer: ObservableObject {
         switch host.lowercased() {
         case "startstop":
             startStop()
+        case "pauseresume":
+            pauseResume()
+        case "pause":
+            if !stateMachine.state.isPaused {
+                pauseResume()
+            }
+        case "resume":
+            if stateMachine.state.isPaused {
+                pauseResume()
+            }
         default:
             print("url handling error: unknown command \(host)")
             return
@@ -115,12 +152,30 @@ class TBTimer: ObservableObject {
         stateMachine <-! .startStop
     }
 
+    func pauseResume() {
+        guard stateMachine.state != .idle else { return }
+        stateMachine <-! .pauseResume
+    }
+
     func skipRest() {
+        guard stateMachine.state == .rest || stateMachine.state == .pausedRest else { return }
         stateMachine <-! .skipRest
     }
 
     func updateTimeLeft() {
-        timeLeftString = timerFormatter.string(from: Date(), to: finishTime)!
+        if stateMachine.state.isPaused {
+            timeLeftString = timerFormatter.string(from: max(0, remainingTime)) ?? "00:00"
+            if showTimerInMenuBar {
+                TBStatusItem.shared.setTitle(title: "⏸ \(timeLeftString)")
+            } else {
+                TBStatusItem.shared.setTitle(title: nil)
+            }
+            return
+        }
+
+        if let finishTime = finishTime {
+            timeLeftString = timerFormatter.string(from: Date(), to: finishTime) ?? ""
+        }
         if timer != nil, showTimerInMenuBar {
             TBStatusItem.shared.setTitle(title: timeLeftString)
         } else {
@@ -128,8 +183,8 @@ class TBTimer: ObservableObject {
         }
     }
 
-    private func startTimer(seconds: Int) {
-        finishTime = Date().addingTimeInterval(TimeInterval(seconds))
+    private func startTimer(timeInterval: TimeInterval) {
+        finishTime = Date().addingTimeInterval(timeInterval)
 
         let queue = DispatchQueue(label: "Timer")
         timer = DispatchSource.makeTimerSource(flags: .strict, queue: queue)
@@ -139,15 +194,22 @@ class TBTimer: ObservableObject {
         timer!.resume()
     }
 
+    private func startTimer(seconds: Int) {
+        startTimer(timeInterval: TimeInterval(seconds))
+    }
+
     private func stopTimer() {
-        timer!.cancel()
-        timer = nil
+        if let activeTimer = timer {
+            activeTimer.cancel()
+            timer = nil
+        }
     }
 
     private func onTimerTick() {
         /* Cannot publish updates from background thread */
         DispatchQueue.main.async { [self] in
             updateTimeLeft()
+            guard let finishTime = finishTime else { return }
             let timeLeft = finishTime.timeIntervalSince(Date())
             if timeLeft <= 0 {
                 /*
@@ -170,16 +232,35 @@ class TBTimer: ObservableObject {
     }
 
     private func onNotificationAction(action: TBNotification.Action) {
-        if action == .skipRest, stateMachine.state == .rest {
+        if action == .skipRest, (stateMachine.state == .rest || stateMachine.state == .pausedRest) {
             skipRest()
         }
     }
 
-    private func onWorkStart(context _: TBStateMachine.Context) {
+    private func onWorkStart(context ctx: TBStateMachine.Context) {
+        if ctx.fromState == .pausedWork {
+            onResumeWork(context: ctx)
+            return
+        }
+        remainingTime = 0
         TBStatusItem.shared.setIcon(name: .work)
         player.playWindup()
         player.startTicking()
         startTimer(seconds: workIntervalLength * 60)
+    }
+
+    private func onResumeWork(context _: TBStateMachine.Context) {
+        TBStatusItem.shared.setIcon(name: .work)
+        player.startTicking()
+        startTimer(timeInterval: remainingTime)
+    }
+
+    private func onPauseWork(context _: TBStateMachine.Context) {
+        if let finishTime = finishTime {
+            remainingTime = max(0, finishTime.timeIntervalSince(Date()))
+        }
+        stopTimer()
+        player.stopTicking()
     }
 
     private func onWorkFinish(context _: TBStateMachine.Context) {
@@ -191,7 +272,12 @@ class TBTimer: ObservableObject {
         player.stopTicking()
     }
 
-    private func onRestStart(context _: TBStateMachine.Context) {
+    private func onRestStart(context ctx: TBStateMachine.Context) {
+        if ctx.fromState == .pausedRest {
+            onResumeRest(context: ctx)
+            return
+        }
+        remainingTime = 0
         var body = NSLocalizedString("TBTimer.onRestStart.short.body", comment: "Short break body")
         var length = shortRestIntervalLength
         var imgName = NSImage.Name.shortRest
@@ -210,6 +296,19 @@ class TBTimer: ObservableObject {
         startTimer(seconds: length * 60)
     }
 
+    private func onResumeRest(context _: TBStateMachine.Context) {
+        let imgName: NSImage.Name = consecutiveWorkIntervals >= workIntervalsInSet ? .longRest : .shortRest
+        TBStatusItem.shared.setIcon(name: imgName)
+        startTimer(timeInterval: remainingTime)
+    }
+
+    private func onPauseRest(context _: TBStateMachine.Context) {
+        if let finishTime = finishTime {
+            remainingTime = max(0, finishTime.timeIntervalSince(Date()))
+        }
+        stopTimer()
+    }
+
     private func onRestFinish(context ctx: TBStateMachine.Context) {
         if ctx.event == .skipRest {
             return
@@ -223,7 +322,10 @@ class TBTimer: ObservableObject {
 
     private func onIdleStart(context _: TBStateMachine.Context) {
         stopTimer()
+        remainingTime = 0
+        player.stopTicking()
         TBStatusItem.shared.setIcon(name: .idle)
+        TBStatusItem.shared.setTitle(title: nil)
         consecutiveWorkIntervals = 0
     }
 }
