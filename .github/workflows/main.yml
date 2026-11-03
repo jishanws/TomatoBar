@@ -48,7 +48,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: TomatoBar-${{ env.version }}
-          path: TomatoBar-${{ env.version }}.zip
+          path: TomatoBar.app
 
       - name: Release (Tag)
         if: github.ref_type == 'tag'
