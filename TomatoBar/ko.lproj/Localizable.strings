@@ -34,6 +34,7 @@
 "ActivityView.empty.subtitle" = "완료된 뽀모도로가 여기에 표시됩니다.";
 "ActivityView.thisWeek.title" = "이번 주";
 "ActivityView.noTags.title" = "기록된 태그가 없습니다";
+"ActivityView.noTag.label" = "태그 없음";
 "ActivityView.clear.button" = "기록 삭제";
 "ActivityView.clear.alert.title" = "활동 기록을 삭제할까요?";
 "ActivityView.clear.alert.message" = "모든 집중 기록과 통계를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.";

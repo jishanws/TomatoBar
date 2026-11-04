@@ -34,6 +34,7 @@
 "ActivityView.empty.subtitle" = "完成的番茄钟将显示在此处。";
 "ActivityView.thisWeek.title" = "本周专注";
 "ActivityView.noTags.title" = "暂无标签记录";
+"ActivityView.noTag.label" = "无标签";
 "ActivityView.clear.button" = "清空记录";
 "ActivityView.clear.alert.title" = "清空活动记录？";
 "ActivityView.clear.alert.message" = "确定要清空所有历史专注记录与统计数据吗？此操作无法撤销。";

@@ -34,6 +34,7 @@
 "ActivityView.empty.subtitle" = "Completed Pomodoros will appear here.";
 "ActivityView.thisWeek.title" = "This Week";
 "ActivityView.noTags.title" = "No tags recorded yet";
+"ActivityView.noTag.label" = "No tag";
 "ActivityView.clear.button" = "Clear";
 "ActivityView.clear.alert.title" = "Clear Activity History?";
 "ActivityView.clear.alert.message" = "Are you sure you want to delete all focus history and statistics? This cannot be undone.";

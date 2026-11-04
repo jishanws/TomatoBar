@@ -75,13 +75,16 @@ class TBSessionStore: ObservableObject {
         return tags
     }
 
+    static let maxNoteLength = 45
+
     func addSession(startTime: Date, endTime: Date, durationMinutes: Int, note: String) {
-        let tags = Self.extractTags(from: note)
+        let trimmed = String(note.trimmingCharacters(in: .whitespacesAndNewlines).prefix(Self.maxNoteLength))
+        let tags = Self.extractTags(from: trimmed)
         let record = TBSessionRecord(
             startTime: startTime,
             endTime: endTime,
             durationMinutes: durationMinutes,
-            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
+            note: trimmed,
             tags: tags
         )
         sessions.insert(record, at: 0)
@@ -96,11 +99,29 @@ class TBSessionStore: ObservableObject {
 
     // MARK: - Analytics Helpers
 
-    var thisWeekSessions: [TBSessionRecord] {
+    struct TBTagStat: Identifiable {
+        var id: String { tag }
+        let tag: String
+        let minutes: Int
+        let count: Int
+        let isNoTag: Bool
+    }
+
+    /// Week starts on Saturday (weekday: 7).
+    /// If today is Sat (7) -> 7 % 7 = 0 days back.
+    /// If today is Sun (1) -> 1 % 7 = 1 day back (Sat).
+    /// If today is Fri (6) -> 6 % 7 = 6 days back (Sat).
+    func startOfSaturdayWeek(for date: Date = Date()) -> Date {
         let calendar = Calendar.current
-        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) else {
-            return []
-        }
+        let components = calendar.dateComponents([.weekday], from: date)
+        let currentWeekday = components.weekday ?? 1
+        let daysToSubtract = currentWeekday % 7
+        let startOfDay = calendar.startOfDay(for: date)
+        return calendar.date(byAdding: .day, value: -daysToSubtract, to: startOfDay) ?? startOfDay
+    }
+
+    var thisWeekSessions: [TBSessionRecord] {
+        let startOfWeek = startOfSaturdayWeek()
         return sessions.filter { $0.endTime >= startOfWeek }
     }
 
@@ -108,14 +129,11 @@ class TBSessionStore: ObservableObject {
         thisWeekSessions.reduce(0) { $0 + $1.durationMinutes }
     }
 
-    /// Returns daily minutes for Monday through Sunday of current week
+    /// Returns daily minutes for Saturday through Friday of current week
     func weeklyDailyMinutes() -> [(day: String, minutes: Int, isToday: Bool)] {
         let calendar = Calendar.current
-        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) else {
-            return []
-        }
-
-        let daySymbols = ["M", "T", "W", "T", "F", "S", "S"]
+        let startOfWeek = startOfSaturdayWeek()
+        let daySymbols = ["S", "S", "M", "T", "W", "T", "F"]
         var results: [(day: String, minutes: Int, isToday: Bool)] = []
 
         let today = Date()
@@ -129,16 +147,33 @@ class TBSessionStore: ObservableObject {
         return results
     }
 
-    /// Tag breakdown with total minutes and percentage of total tagged time
-    func tagBreakdown() -> [(tag: String, minutes: Int, count: Int)] {
+    /// Tag breakdown sorted by highest duration, including "no tag" category
+    func tagBreakdown() -> [TBTagStat] {
         var map: [String: (minutes: Int, count: Int)] = [:]
+        var noTagMinutes = 0
+        var noTagCount = 0
+
         for session in sessions {
-            for tag in session.tags {
-                let existing = map[tag] ?? (0, 0)
-                map[tag] = (existing.minutes + session.durationMinutes, existing.count + 1)
+            if session.tags.isEmpty {
+                noTagMinutes += session.durationMinutes
+                noTagCount += 1
+            } else {
+                for tag in session.tags {
+                    let existing = map[tag] ?? (0, 0)
+                    map[tag] = (existing.minutes + session.durationMinutes, existing.count + 1)
+                }
             }
         }
-        return map.map { (tag: $0.key, minutes: $0.value.minutes, count: $0.value.count) }
-                  .sorted { $0.minutes > $1.minutes }
+
+        var results: [TBTagStat] = map.map {
+            TBTagStat(tag: $0.key, minutes: $0.value.minutes, count: $0.value.count, isNoTag: false)
+        }
+
+        if noTagCount > 0 {
+            let noTagLabel = NSLocalizedString("ActivityView.noTag.label", comment: "No tag label")
+            results.append(TBTagStat(tag: noTagLabel, minutes: noTagMinutes, count: noTagCount, isNoTag: true))
+        }
+
+        return results.sorted { $0.minutes > $1.minutes }
     }
 }

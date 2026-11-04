@@ -142,7 +142,7 @@ private struct SoundsView: View {
 }
 
 private enum ChildView {
-    case intervals, activity, settings, sounds
+    case intervals, activity, sounds, settings
 }
 
 private enum ActivitySubView {
@@ -201,23 +201,9 @@ private struct ActivityView: View {
                                             .cornerRadius(3)
                                     }
                                     if !session.note.isEmpty {
-                                        Text(session.note)
+                                        formattedNoteText(session.note)
                                             .font(.system(size: 11))
-                                            .lineLimit(2)
-                                            .foregroundColor(.primary)
-                                    }
-                                    if !session.tags.isEmpty {
-                                        HStack(spacing: 3) {
-                                            ForEach(session.tags, id: \.self) { tag in
-                                                Text("#\(tag)")
-                                                    .font(.system(size: 9, weight: .medium))
-                                                    .foregroundColor(.accentColor)
-                                                    .padding(.horizontal, 4)
-                                                    .padding(.vertical, 1)
-                                                    .background(Color.accentColor.opacity(0.12))
-                                                    .cornerRadius(3)
-                                            }
-                                        }
+                                            .lineLimit(1)
                                     }
                                     Divider().opacity(0.4)
                                 }
@@ -266,19 +252,28 @@ private struct ActivityView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.top, 4)
                     } else {
-                        VStack(spacing: 3) {
-                            ForEach(tags.prefix(3), id: \.tag) { item in
-                                HStack {
-                                    Text("#\(item.tag)")
-                                        .font(.system(size: 10, weight: .medium))
-                                        .foregroundColor(.accentColor)
-                                    Spacer()
-                                    Text(TBTimer.formatDuration(minutes: item.minutes))
-                                        .font(.system(size: 10).monospacedDigit())
-                                        .foregroundColor(.secondary)
+                        ScrollView {
+                            VStack(spacing: 3) {
+                                ForEach(tags) { item in
+                                    HStack {
+                                        if item.isNoTag {
+                                            Text(item.tag)
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                        } else {
+                                            Text("#\(item.tag)")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .foregroundColor(.accentColor)
+                                        }
+                                        Spacer()
+                                        Text(TBTimer.formatDuration(minutes: item.minutes))
+                                            .font(.system(size: 10).monospacedDigit())
+                                            .foregroundColor(.secondary)
+                                    }
                                 }
                             }
                         }
+                        .frame(maxHeight: 52)
                     }
                     Spacer().frame(minHeight: 0)
                 }
@@ -311,6 +306,36 @@ private struct ActivityView: View {
                 secondaryButton: .cancel(Text(NSLocalizedString("ActivityView.clear.alert.cancel", comment: "Cancel")))
             )
         }
+    }
+
+    private func formattedNoteText(_ note: String) -> Text {
+        let pattern = "#[a-zA-Z0-9_-]+"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return Text(note).foregroundColor(.primary)
+        }
+        let nsString = note as NSString
+        let matches = regex.matches(in: note, range: NSRange(location: 0, length: nsString.length))
+        if matches.isEmpty {
+            return Text(note).foregroundColor(.primary)
+        }
+
+        var result = Text("")
+        var currentIndex = 0
+        for match in matches {
+            let matchRange = match.range
+            if matchRange.location > currentIndex {
+                let plainRange = NSRange(location: currentIndex, length: matchRange.location - currentIndex)
+                result = result + Text(nsString.substring(with: plainRange)).foregroundColor(.primary)
+            }
+            let tagString = nsString.substring(with: matchRange)
+            result = result + Text(tagString).foregroundColor(.red).bold()
+            currentIndex = matchRange.location + matchRange.length
+        }
+        if currentIndex < nsString.length {
+            let remainingRange = NSRange(location: currentIndex, length: nsString.length - currentIndex)
+            result = result + Text(nsString.substring(with: remainingRange)).foregroundColor(.primary)
+        }
+        return result
     }
 
     private func formatSessionDate(_ date: Date) -> String {
@@ -387,6 +412,38 @@ struct TBPopoverView: View {
                 }
             }
 
+            HStack(spacing: 5) {
+                Image(systemName: "pencil.line")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                TextField(
+                    NSLocalizedString("TBPopoverView.note.placeholder", comment: "Task note placeholder"),
+                    text: $timer.sessionStore.currentTaskNote
+                )
+                .textFieldStyle(PlainTextFieldStyle())
+                .font(.system(size: 11))
+                .lineLimit(1)
+                if !timer.sessionStore.currentTaskNote.isEmpty {
+                    Button {
+                        timer.sessionStore.currentTaskNote = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(Color.secondary.opacity(0.12))
+            .cornerRadius(5)
+            .onChange(of: timer.sessionStore.currentTaskNote) { newValue in
+                if newValue.count > TBSessionStore.maxNoteLength {
+                    timer.sessionStore.currentTaskNote = String(newValue.prefix(TBSessionStore.maxNoteLength))
+                }
+            }
+
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     if timer.dailyCompletedMinutes >= timer.dailyGoalMinutes {
@@ -409,41 +466,15 @@ struct TBPopoverView: View {
             }
             .padding(.vertical, 2)
 
-            HStack(spacing: 5) {
-                Image(systemName: "pencil.line")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                TextField(
-                    NSLocalizedString("TBPopoverView.note.placeholder", comment: "Task note placeholder"),
-                    text: $timer.sessionStore.currentTaskNote
-                )
-                .textFieldStyle(PlainTextFieldStyle())
-                .font(.system(size: 11))
-                if !timer.sessionStore.currentTaskNote.isEmpty {
-                    Button {
-                        timer.sessionStore.currentTaskNote = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(Color.secondary.opacity(0.12))
-            .cornerRadius(5)
-
             Picker("", selection: $activeChildView) {
                 Text(NSLocalizedString("TBPopoverView.intervals.label",
                                        comment: "Intervals label")).tag(ChildView.intervals)
                 Text(NSLocalizedString("TBPopoverView.activity.label",
                                        comment: "Activity label")).tag(ChildView.activity)
-                Text(NSLocalizedString("TBPopoverView.settings.label",
-                                       comment: "Settings label")).tag(ChildView.settings)
                 Text(NSLocalizedString("TBPopoverView.sounds.label",
                                        comment: "Sounds label")).tag(ChildView.sounds)
+                Text(NSLocalizedString("TBPopoverView.settings.label",
+                                       comment: "Settings label")).tag(ChildView.settings)
             }
             .labelsHidden()
             .frame(maxWidth: .infinity)
@@ -455,10 +486,10 @@ struct TBPopoverView: View {
                     IntervalsView().environmentObject(timer)
                 case .activity:
                     ActivityView().environmentObject(timer.sessionStore)
-                case .settings:
-                    SettingsView().environmentObject(timer)
                 case .sounds:
                     SoundsView().environmentObject(timer.player)
+                case .settings:
+                    SettingsView().environmentObject(timer)
                 }
             }
             .frame(height: 180)
@@ -471,10 +502,10 @@ struct TBPopoverView: View {
                     Text(NSLocalizedString("TBPopoverView.about.label",
                                            comment: "About label"))
                     Spacer()
-                    Text("⌘ A").foregroundColor(Color.gray)
+                    Text("⌘ I").foregroundColor(Color.gray)
                 }
                 .buttonStyle(.plain)
-                .keyboardShortcut("a")
+                .keyboardShortcut("i")
                 Button {
                     NSApplication.shared.terminate(self)
                 } label: {
