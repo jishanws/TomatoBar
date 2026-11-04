@@ -7,58 +7,145 @@ extension KeyboardShortcuts.Name {
     static let pauseResumeTimer = Self("pauseResumeTimer")
 }
 
-private struct IntervalsView: View {
-    @EnvironmentObject var timer: TBTimer
-    private var minStr = NSLocalizedString("IntervalsView.min", comment: "min")
+private struct EditableIntervalRow: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    var suffix: String = ""
+    var helpText: String = ""
+
+    private let formatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .none
+        f.minimum = 0
+        f.maximum = 999
+        return f
+    }()
 
     var body: some View {
-        VStack {
-            Stepper(value: $timer.workIntervalLength, in: 1 ... 60) {
-                HStack {
-                    Text(NSLocalizedString("IntervalsView.workIntervalLength.label",
-                                           comment: "Work interval label"))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(String.localizedStringWithFormat(minStr, timer.workIntervalLength))
-                }
+        HStack(spacing: 4) {
+            Text(title)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            TextField("", value: $value, formatter: formatter, onCommit: {
+                if value < range.lowerBound { value = range.lowerBound }
+                if value > range.upperBound { value = range.upperBound }
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            })
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .frame(width: 38)
+            .multilineTextAlignment(.trailing)
+            .font(.system(size: 11).monospacedDigit())
+            if !suffix.isEmpty {
+                Text(suffix)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .frame(width: 24, alignment: .leading)
             }
-            Stepper(value: $timer.shortRestIntervalLength, in: 1 ... 60) {
-                HStack {
-                    Text(NSLocalizedString("IntervalsView.shortRestIntervalLength.label",
-                                           comment: "Short rest interval label"))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(String.localizedStringWithFormat(minStr, timer.shortRestIntervalLength))
-                }
+            Stepper("", value: $value, in: range)
+                .labelsHidden()
+        }
+        .help(helpText)
+    }
+}
+
+private struct EditableDailyGoalRow: View {
+    @Binding var totalMinutes: Int
+    let helpText: String
+
+    private let formatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .none
+        f.minimum = 0
+        f.maximum = 999
+        return f
+    }()
+
+    private var hoursBinding: Binding<Int> {
+        Binding(
+            get: { totalMinutes / 60 },
+            set: { newHours in
+                let currentMins = totalMinutes % 60
+                totalMinutes = max(0, min(720, (max(0, newHours) * 60) + currentMins))
             }
-            Stepper(value: $timer.longRestIntervalLength, in: 1 ... 60) {
-                HStack {
-                    Text(NSLocalizedString("IntervalsView.longRestIntervalLength.label",
-                                           comment: "Long rest interval label"))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(String.localizedStringWithFormat(minStr, timer.longRestIntervalLength))
-                }
+        )
+    }
+
+    private var minsBinding: Binding<Int> {
+        Binding(
+            get: { totalMinutes % 60 },
+            set: { newMins in
+                let currentHours = totalMinutes / 60
+                totalMinutes = max(0, min(720, (currentHours * 60) + max(0, min(59, newMins))))
             }
-            .help(NSLocalizedString("IntervalsView.longRestIntervalLength.help",
-                                    comment: "Long rest interval hint"))
-            Stepper(value: $timer.workIntervalsInSet, in: 1 ... 10) {
-                HStack {
-                    Text(NSLocalizedString("IntervalsView.workIntervalsInSet.label",
-                                           comment: "Work intervals in a set label"))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("\(timer.workIntervalsInSet)")
-                }
-            }
-            .help(NSLocalizedString("IntervalsView.workIntervalsInSet.help",
-                                    comment: "Work intervals in set hint"))
-            Stepper(value: $timer.dailyGoalMinutes, in: 15 ... 720, step: 15) {
-                HStack {
-                    Text(NSLocalizedString("IntervalsView.dailyGoal.label",
-                                           comment: "Daily goal label"))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(TBTimer.formatDuration(minutes: timer.dailyGoalMinutes))
-                }
-            }
-            .help(NSLocalizedString("IntervalsView.dailyGoal.help",
-                                    comment: "Daily goal hint"))
+        )
+    }
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Text(NSLocalizedString("IntervalsView.dailyGoal.label", comment: "Daily goal label"))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            TextField("", value: hoursBinding, formatter: formatter, onCommit: {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            })
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .frame(width: 28)
+            .multilineTextAlignment(.trailing)
+            .font(.system(size: 11).monospacedDigit())
+            Text("h")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+            TextField("", value: minsBinding, formatter: formatter, onCommit: {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            })
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .frame(width: 28)
+            .multilineTextAlignment(.trailing)
+            .font(.system(size: 11).monospacedDigit())
+            Text("m")
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+            Stepper("", value: $totalMinutes, in: 0...720, step: 15)
+                .labelsHidden()
+        }
+        .help(helpText)
+    }
+}
+
+private struct IntervalsView: View {
+    @EnvironmentObject var timer: TBTimer
+
+    var body: some View {
+        VStack(spacing: 5) {
+            EditableIntervalRow(
+                title: NSLocalizedString("IntervalsView.workIntervalLength.label", comment: "Work interval label"),
+                value: $timer.workIntervalLength,
+                range: 1...120,
+                suffix: "min"
+            )
+            EditableIntervalRow(
+                title: NSLocalizedString("IntervalsView.shortRestIntervalLength.label", comment: "Short rest interval label"),
+                value: $timer.shortRestIntervalLength,
+                range: 1...60,
+                suffix: "min"
+            )
+            EditableIntervalRow(
+                title: NSLocalizedString("IntervalsView.longRestIntervalLength.label", comment: "Long rest interval label"),
+                value: $timer.longRestIntervalLength,
+                range: 1...60,
+                suffix: "min",
+                helpText: NSLocalizedString("IntervalsView.longRestIntervalLength.help", comment: "Long rest interval hint")
+            )
+            EditableIntervalRow(
+                title: NSLocalizedString("IntervalsView.workIntervalsInSet.label", comment: "Work intervals in a set label"),
+                value: $timer.workIntervalsInSet,
+                range: 1...20,
+                suffix: "",
+                helpText: NSLocalizedString("IntervalsView.workIntervalsInSet.help", comment: "Work intervals in set hint")
+            )
+            EditableDailyGoalRow(
+                totalMinutes: $timer.dailyGoalMinutes,
+                helpText: NSLocalizedString("IntervalsView.dailyGoal.help", comment: "Daily goal hint")
+            )
             Spacer().frame(minHeight: 0)
         }
         .padding(4)
@@ -232,11 +319,11 @@ private struct ActivityView: View {
                             let barHeight = max(3.0, CGFloat(item.minutes) / CGFloat(maxMins) * 36.0)
                             VStack(spacing: 2) {
                                 RoundedRectangle(cornerRadius: 2)
-                                    .fill(item.isToday ? Color.accentColor : (item.minutes > 0 ? Color.secondary.opacity(0.55) : Color.secondary.opacity(0.2)))
+                                    .fill(item.isToday ? Color.primary.opacity(0.85) : (item.minutes > 0 ? Color.primary.opacity(0.45) : Color.secondary.opacity(0.18)))
                                     .frame(width: 14, height: barHeight)
                                 Text(item.day)
                                     .font(.system(size: 9, weight: item.isToday ? .bold : .regular))
-                                    .foregroundColor(item.isToday ? .accentColor : .secondary)
+                                    .foregroundColor(item.isToday ? .primary : .secondary)
                             }
                         }
                     }
@@ -262,8 +349,8 @@ private struct ActivityView: View {
                                                 .foregroundColor(.secondary)
                                         } else {
                                             Text("#\(item.tag)")
-                                                .font(.system(size: 10, weight: .medium))
-                                                .foregroundColor(.accentColor)
+                                                .font(.system(size: 10, weight: .semibold))
+                                                .foregroundColor(.red)
                                         }
                                         Spacer()
                                         Text(TBTimer.formatDuration(minutes: item.minutes))
@@ -328,7 +415,7 @@ private struct ActivityView: View {
                 result = result + Text(nsString.substring(with: plainRange)).foregroundColor(.primary)
             }
             let tagString = nsString.substring(with: matchRange)
-            result = result + Text(tagString).foregroundColor(.red).bold()
+            result = result + Text(tagString).foregroundColor(.primary).bold()
             currentIndex = matchRange.location + matchRange.length
         }
         if currentIndex < nsString.length {
@@ -364,6 +451,7 @@ struct TBPopoverView: View {
         VStack(alignment: .leading, spacing: 8) {
             if !timer.state.isActive {
                 Button {
+                    NSApp.keyWindow?.makeFirstResponder(nil)
                     timer.startStop()
                     TBStatusItem.shared.closePopover(nil)
                 } label: {
@@ -377,14 +465,20 @@ struct TBPopoverView: View {
             } else {
                 HStack(spacing: 6) {
                     Button {
+                        NSApp.keyWindow?.makeFirstResponder(nil)
                         timer.pauseResume()
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(timer.state.isPaused ? Color.yellow : Color.green)
+                                .frame(width: 6, height: 6)
                             if timer.state.isPaused {
                                 Image(systemName: "play.fill")
+                                    .font(.system(size: 10))
                                 Text("\(resumeLabel) \(timer.timeLeftString)")
                             } else {
                                 Image(systemName: "pause.fill")
+                                    .font(.system(size: 10))
                                 Text(pauseButtonHovered ? pauseLabel : timer.timeLeftString)
                             }
                         }
@@ -392,12 +486,21 @@ struct TBPopoverView: View {
                         .font(.system(.body).monospacedDigit())
                         .frame(maxWidth: .infinity)
                     }
+                    .background(
+                        RoundedRectangle(cornerRadius: 5)
+                            .fill(timer.state.isPaused ? Color.yellow.opacity(0.18) : Color.green.opacity(0.18))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(timer.state.isPaused ? Color.yellow.opacity(0.35) : Color.green.opacity(0.35), lineWidth: 1)
+                    )
                     .onHover { over in
                         pauseButtonHovered = over
                     }
                     .controlSize(.large)
 
                     Button {
+                        NSApp.keyWindow?.makeFirstResponder(nil)
                         timer.startStop()
                         TBStatusItem.shared.closePopover(nil)
                     } label: {
@@ -418,7 +521,10 @@ struct TBPopoverView: View {
                     .foregroundColor(.secondary)
                 TextField(
                     NSLocalizedString("TBPopoverView.note.placeholder", comment: "Task note placeholder"),
-                    text: $timer.sessionStore.currentTaskNote
+                    text: $timer.sessionStore.currentTaskNote,
+                    onCommit: {
+                        NSApp.keyWindow?.makeFirstResponder(nil)
+                    }
                 )
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(size: 11))
@@ -446,7 +552,7 @@ struct TBPopoverView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
-                    if timer.dailyCompletedMinutes >= timer.dailyGoalMinutes {
+                    if timer.dailyGoalMinutes > 0 && timer.dailyCompletedMinutes >= timer.dailyGoalMinutes {
                         Text(NSLocalizedString("TBPopoverView.dailyGoal.achieved", comment: "Goal Achieved"))
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.green)
@@ -456,15 +562,25 @@ struct TBPopoverView: View {
                             .foregroundColor(.secondary)
                     }
                     Spacer()
-                    Text("\(TBTimer.formatDuration(minutes: timer.dailyCompletedMinutes)) / \(TBTimer.formatDuration(minutes: timer.dailyGoalMinutes))")
-                        .font(.system(size: 11, weight: .medium).monospacedDigit())
-                        .foregroundColor(.secondary)
+                    if timer.dailyGoalMinutes == 0 {
+                        Text(TBTimer.formatDuration(minutes: timer.dailyCompletedMinutes))
+                            .font(.system(size: 11, weight: .medium).monospacedDigit())
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("\(TBTimer.formatDuration(minutes: timer.dailyCompletedMinutes)) / \(TBTimer.formatDuration(minutes: timer.dailyGoalMinutes))")
+                            .font(.system(size: 11, weight: .medium).monospacedDigit())
+                            .foregroundColor(.secondary)
+                    }
                 }
-                ProgressView(value: min(1.0, Double(timer.dailyCompletedMinutes) / Double(max(1, timer.dailyGoalMinutes))))
+                ProgressView(value: timer.dailyGoalMinutes == 0 ? 0 : min(1.0, Double(timer.dailyCompletedMinutes) / Double(timer.dailyGoalMinutes)))
                     .progressViewStyle(.linear)
-                    .accentColor(timer.dailyCompletedMinutes >= timer.dailyGoalMinutes ? .green : .red)
+                    .accentColor(timer.dailyGoalMinutes > 0 && timer.dailyCompletedMinutes >= timer.dailyGoalMinutes ? Color.green.opacity(0.8) : Color.primary.opacity(0.55))
             }
             .padding(.vertical, 2)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            }
 
             Picker("", selection: $activeChildView) {
                 Text(NSLocalizedString("TBPopoverView.intervals.label",
@@ -493,6 +609,10 @@ struct TBPopoverView: View {
                 }
             }
             .frame(height: 180)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            }
 
             Group {
                 Button {
@@ -526,6 +646,13 @@ struct TBPopoverView: View {
             )
         #endif
             .padding(12)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            }
+            .onChange(of: activeChildView) { _ in
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            }
             .onAppear {
                 timer.checkDayRollover()
             }

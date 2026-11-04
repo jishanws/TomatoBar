@@ -288,7 +288,7 @@ class TBTimer: ObservableObject {
         dailyCompletedMinutes += workIntervalLength
         recordDailyHistory(date: todayDateString(), minutes: dailyCompletedMinutes)
 
-        if dailyCompletedMinutes >= dailyGoalMinutes && previousMinutes < dailyGoalMinutes {
+        if dailyGoalMinutes > 0 && dailyCompletedMinutes >= dailyGoalMinutes && previousMinutes < dailyGoalMinutes {
             let formattedGoal = TBTimer.formatDuration(minutes: dailyGoalMinutes)
             notificationCenter.send(
                 title: NSLocalizedString("TBTimer.goalReached.title", comment: "Daily goal achieved"),
