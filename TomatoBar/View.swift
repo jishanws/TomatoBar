@@ -7,6 +7,57 @@ extension KeyboardShortcuts.Name {
     static let pauseResumeTimer = Self("pauseResumeTimer")
 }
 
+private struct IntegerField: View {
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    var width: CGFloat = 44
+
+    @State private var text: String = ""
+
+    var body: some View {
+        TextField("", text: $text, onCommit: {
+            commitValue()
+            DispatchQueue.main.async {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            }
+        })
+        .textFieldStyle(RoundedBorderTextFieldStyle())
+        .font(.system(size: 11, weight: .medium).monospacedDigit())
+        .multilineTextAlignment(.trailing)
+        .frame(width: width)
+        .onAppear {
+            text = "\(value)"
+        }
+        .onChange(of: value) { newValue in
+            let str = "\(newValue)"
+            if text != str {
+                text = str
+            }
+        }
+        .onChange(of: text) { newText in
+            let digits = newText.filter { $0.isNumber }
+            if digits != newText {
+                text = digits
+            }
+            if let num = Int(digits) {
+                let clamped = max(range.lowerBound, min(range.upperBound, num))
+                if value != clamped {
+                    value = clamped
+                }
+            }
+        }
+    }
+
+    private func commitValue() {
+        if let num = Int(text) {
+            value = max(range.lowerBound, min(range.upperBound, num))
+        } else {
+            value = range.lowerBound
+        }
+        text = "\(value)"
+    }
+}
+
 private struct EditableIntervalRow: View {
     let title: String
     @Binding var value: Int
@@ -14,27 +65,12 @@ private struct EditableIntervalRow: View {
     var suffix: String = ""
     var helpText: String = ""
 
-    private let formatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .none
-        f.minimum = 0
-        f.maximum = 999
-        return f
-    }()
-
     var body: some View {
         HStack(spacing: 4) {
             Text(title)
                 .font(.system(size: 11))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            TextField("", value: $value, formatter: formatter, onCommit: {
-                value = max(range.lowerBound, min(range.upperBound, value))
-                NSApp.keyWindow?.makeFirstResponder(nil)
-            })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .font(.system(size: 11, weight: .medium).monospacedDigit())
-            .multilineTextAlignment(.center)
-            .frame(width: 44)
+            IntegerField(value: $value, range: range, width: 44)
             if !suffix.isEmpty {
                 Text(suffix)
                     .font(.system(size: 11))
@@ -51,14 +87,6 @@ private struct EditableIntervalRow: View {
 private struct EditableDailyGoalRow: View {
     @Binding var totalMinutes: Int
     let helpText: String
-
-    private let formatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .none
-        f.minimum = 0
-        f.maximum = 999
-        return f
-    }()
 
     private var hoursBinding: Binding<Int> {
         Binding(
@@ -87,23 +115,11 @@ private struct EditableDailyGoalRow: View {
             Text(NSLocalizedString("IntervalsView.dailyGoal.label", comment: "Daily goal label"))
                 .font(.system(size: 11))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            TextField("", value: hoursBinding, formatter: formatter, onCommit: {
-                NSApp.keyWindow?.makeFirstResponder(nil)
-            })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .font(.system(size: 11, weight: .medium).monospacedDigit())
-            .multilineTextAlignment(.center)
-            .frame(width: 34)
+            IntegerField(value: hoursBinding, range: 0...12, width: 34)
             Text("h")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
-            TextField("", value: minsBinding, formatter: formatter, onCommit: {
-                NSApp.keyWindow?.makeFirstResponder(nil)
-            })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .font(.system(size: 11, weight: .medium).monospacedDigit())
-            .multilineTextAlignment(.center)
-            .frame(width: 34)
+            IntegerField(value: minsBinding, range: 0...59, width: 34)
             Text("m")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
@@ -450,6 +466,27 @@ private struct ActivityView: View {
     }
 }
 
+private struct ResignFocusOnBackgroundClick: NSViewRepresentable {
+    func makeNSView(context: Context) -> ResignView {
+        ResignView()
+    }
+
+    func updateNSView(_ nsView: ResignView, context: Context) {}
+
+    class ResignView: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? {
+            let hit = super.hitTest(point)
+            return hit === self ? self : nil
+        }
+
+        override func mouseDown(with event: NSEvent) {
+            DispatchQueue.main.async {
+                self.window?.makeFirstResponder(nil)
+            }
+        }
+    }
+}
+
 struct TBPopoverView: View {
     @ObservedObject var timer = TBTimer()
     @State private var pauseButtonHovered = false
@@ -464,7 +501,9 @@ struct TBPopoverView: View {
         VStack(alignment: .leading, spacing: 8) {
             if !timer.state.isActive {
                 Button {
-                    NSApp.keyWindow?.makeFirstResponder(nil)
+                    DispatchQueue.main.async {
+                        NSApp.keyWindow?.makeFirstResponder(nil)
+                    }
                     timer.startStop()
                     TBStatusItem.shared.closePopover(nil)
                 } label: {
@@ -478,7 +517,9 @@ struct TBPopoverView: View {
             } else {
                 HStack(spacing: 6) {
                     Button {
-                        NSApp.keyWindow?.makeFirstResponder(nil)
+                        DispatchQueue.main.async {
+                            NSApp.keyWindow?.makeFirstResponder(nil)
+                        }
                         timer.pauseResume()
                     } label: {
                         HStack(spacing: 4) {
@@ -499,7 +540,9 @@ struct TBPopoverView: View {
                     .controlSize(.large)
 
                     Button {
-                        NSApp.keyWindow?.makeFirstResponder(nil)
+                        DispatchQueue.main.async {
+                            NSApp.keyWindow?.makeFirstResponder(nil)
+                        }
                         timer.startStop()
                         TBStatusItem.shared.closePopover(nil)
                     } label: {
@@ -522,7 +565,9 @@ struct TBPopoverView: View {
                     NSLocalizedString("TBPopoverView.note.placeholder", comment: "Task note placeholder"),
                     text: $timer.sessionStore.currentTaskNote,
                     onCommit: {
-                        NSApp.keyWindow?.makeFirstResponder(nil)
+                        DispatchQueue.main.async {
+                            NSApp.keyWindow?.makeFirstResponder(nil)
+                        }
                     }
                 )
                 .textFieldStyle(PlainTextFieldStyle())
@@ -631,15 +676,11 @@ struct TBPopoverView: View {
             )
         #endif
             .padding(12)
-            .background(
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        NSApp.keyWindow?.makeFirstResponder(nil)
-                    }
-            )
+            .background(ResignFocusOnBackgroundClick())
             .onChange(of: activeChildView) { _ in
-                NSApp.keyWindow?.makeFirstResponder(nil)
+                DispatchQueue.main.async {
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                }
             }
             .onAppear {
                 timer.checkDayRollover()
