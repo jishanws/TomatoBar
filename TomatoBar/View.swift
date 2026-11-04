@@ -355,7 +355,7 @@ private struct ActivityView: View {
                                             } else {
                                                 Text("#\(item.tag)")
                                                     .font(.system(size: 10, weight: .semibold))
-                                                    .foregroundColor(.red)
+                                                    .foregroundColor(.primary)
                                             }
                                             Spacer()
                                             Text(TBTimer.formatDuration(minutes: item.minutes))
@@ -364,7 +364,7 @@ private struct ActivityView: View {
                                         }
                                         GeometryReader { geo in
                                             RoundedRectangle(cornerRadius: 1.5)
-                                                .fill(item.isNoTag ? Color.secondary.opacity(0.3) : Color.red.opacity(0.75))
+                                                .fill(item.isNoTag ? Color.secondary.opacity(0.25) : Color.primary.opacity(0.6))
                                                 .frame(width: max(4, geo.size.width * CGFloat(item.minutes) / CGFloat(maxTagMins)), height: 3)
                                         }
                                         .frame(height: 3)
