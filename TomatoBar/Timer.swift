@@ -172,7 +172,7 @@ class TBTimer: ObservableObject {
         if stateMachine.state.isPaused {
             timeLeftString = timerFormatter.string(from: max(0, remainingTime)) ?? "00:00"
             if showTimerInMenuBar {
-                TBStatusItem.shared.setTitle(title: "⏸ \(timeLeftString)")
+                TBStatusItem.shared.setTitle(title: "⏸ \(timeLeftString)", color: .systemYellow)
             } else {
                 TBStatusItem.shared.setTitle(title: nil)
             }
@@ -183,7 +183,8 @@ class TBTimer: ObservableObject {
             timeLeftString = timerFormatter.string(from: Date(), to: finishTime) ?? ""
         }
         if timer != nil, showTimerInMenuBar {
-            TBStatusItem.shared.setTitle(title: timeLeftString)
+            let color: NSColor = stateMachine.state == .work ? .systemGreen : (stateMachine.state == .rest ? .systemGreen : .labelColor)
+            TBStatusItem.shared.setTitle(title: timeLeftString, color: color)
         } else {
             TBStatusItem.shared.setTitle(title: nil)
         }
@@ -301,11 +302,7 @@ class TBTimer: ObservableObject {
     static func formatDuration(minutes: Int) -> String {
         let hours = minutes / 60
         let mins = minutes % 60
-        if hours > 0 {
-            return String(format: "%dh %02dm", hours, mins)
-        } else {
-            return "\(mins)m"
-        }
+        return String(format: "%dh %02dm", hours, mins)
     }
 
     func todayDateString() -> String {

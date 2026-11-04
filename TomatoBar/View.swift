@@ -25,16 +25,21 @@ private struct EditableIntervalRow: View {
     var body: some View {
         HStack(spacing: 4) {
             Text(title)
+                .font(.system(size: 11))
                 .frame(maxWidth: .infinity, alignment: .leading)
             TextField("", value: $value, formatter: formatter, onCommit: {
-                if value < range.lowerBound { value = range.lowerBound }
-                if value > range.upperBound { value = range.upperBound }
+                value = max(range.lowerBound, min(range.upperBound, value))
                 NSApp.keyWindow?.makeFirstResponder(nil)
             })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .frame(width: 38)
-            .multilineTextAlignment(.trailing)
-            .font(.system(size: 11).monospacedDigit())
+            .textFieldStyle(PlainTextFieldStyle())
+            .font(.system(size: 11, weight: .medium).monospacedDigit())
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
+            .frame(width: 38, height: 18)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(4)
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
             if !suffix.isEmpty {
                 Text(suffix)
                     .font(.system(size: 11))
@@ -64,8 +69,9 @@ private struct EditableDailyGoalRow: View {
         Binding(
             get: { totalMinutes / 60 },
             set: { newHours in
+                let clampedHours = max(0, min(12, newHours))
                 let currentMins = totalMinutes % 60
-                totalMinutes = max(0, min(720, (max(0, newHours) * 60) + currentMins))
+                totalMinutes = min(720, (clampedHours * 60) + currentMins)
             }
         )
     }
@@ -74,8 +80,9 @@ private struct EditableDailyGoalRow: View {
         Binding(
             get: { totalMinutes % 60 },
             set: { newMins in
+                let clampedMins = max(0, min(59, newMins))
                 let currentHours = totalMinutes / 60
-                totalMinutes = max(0, min(720, (currentHours * 60) + max(0, min(59, newMins))))
+                totalMinutes = min(720, (currentHours * 60) + clampedMins)
             }
         )
     }
@@ -83,24 +90,35 @@ private struct EditableDailyGoalRow: View {
     var body: some View {
         HStack(spacing: 3) {
             Text(NSLocalizedString("IntervalsView.dailyGoal.label", comment: "Daily goal label"))
+                .font(.system(size: 11))
                 .frame(maxWidth: .infinity, alignment: .leading)
             TextField("", value: hoursBinding, formatter: formatter, onCommit: {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .frame(width: 28)
-            .multilineTextAlignment(.trailing)
-            .font(.system(size: 11).monospacedDigit())
+            .textFieldStyle(PlainTextFieldStyle())
+            .font(.system(size: 11, weight: .medium).monospacedDigit())
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
+            .frame(width: 30, height: 18)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(4)
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
             Text("h")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
             TextField("", value: minsBinding, formatter: formatter, onCommit: {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             })
-            .textFieldStyle(RoundedBorderTextFieldStyle())
-            .frame(width: 28)
-            .multilineTextAlignment(.trailing)
-            .font(.system(size: 11).monospacedDigit())
+            .textFieldStyle(PlainTextFieldStyle())
+            .font(.system(size: 11, weight: .medium).monospacedDigit())
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
+            .frame(width: 30, height: 18)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(4)
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
             Text("m")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
@@ -331,6 +349,7 @@ private struct ActivityView: View {
                     .padding(.vertical, 2)
 
                     let tags = sessionStore.tagBreakdown()
+                    let maxTagMins = max(1, tags.map { $0.minutes }.max() ?? 1)
                     if tags.isEmpty {
                         Text(NSLocalizedString("ActivityView.noTags.title",
                                                comment: "No tags title"))
@@ -340,27 +359,36 @@ private struct ActivityView: View {
                             .padding(.top, 4)
                     } else {
                         ScrollView {
-                            VStack(spacing: 3) {
+                            VStack(spacing: 5) {
                                 ForEach(tags) { item in
-                                    HStack {
-                                        if item.isNoTag {
-                                            Text(item.tag)
-                                                .font(.system(size: 10, weight: .medium))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack {
+                                            if item.isNoTag {
+                                                Text(item.tag)
+                                                    .font(.system(size: 10, weight: .medium))
+                                                    .foregroundColor(.secondary)
+                                            } else {
+                                                Text("#\(item.tag)")
+                                                    .font(.system(size: 10, weight: .semibold))
+                                                    .foregroundColor(.red)
+                                            }
+                                            Spacer()
+                                            Text(TBTimer.formatDuration(minutes: item.minutes))
+                                                .font(.system(size: 10).monospacedDigit())
                                                 .foregroundColor(.secondary)
-                                        } else {
-                                            Text("#\(item.tag)")
-                                                .font(.system(size: 10, weight: .semibold))
-                                                .foregroundColor(.red)
                                         }
-                                        Spacer()
-                                        Text(TBTimer.formatDuration(minutes: item.minutes))
-                                            .font(.system(size: 10).monospacedDigit())
-                                            .foregroundColor(.secondary)
+                                        GeometryReader { geo in
+                                            RoundedRectangle(cornerRadius: 1.5)
+                                                .fill(item.isNoTag ? Color.secondary.opacity(0.3) : Color.red.opacity(0.75))
+                                                .frame(width: max(4, geo.size.width * CGFloat(item.minutes) / CGFloat(maxTagMins)), height: 3)
+                                        }
+                                        .frame(height: 3)
                                     }
                                 }
                             }
+                            .padding(.horizontal, 2)
                         }
-                        .frame(maxHeight: 52)
+                        .frame(maxHeight: 65)
                     }
                     Spacer().frame(minHeight: 0)
                 }
@@ -468,17 +496,12 @@ struct TBPopoverView: View {
                         NSApp.keyWindow?.makeFirstResponder(nil)
                         timer.pauseResume()
                     } label: {
-                        HStack(spacing: 5) {
-                            Circle()
-                                .fill(timer.state.isPaused ? Color.yellow : Color.green)
-                                .frame(width: 6, height: 6)
+                        HStack(spacing: 4) {
                             if timer.state.isPaused {
                                 Image(systemName: "play.fill")
-                                    .font(.system(size: 10))
                                 Text("\(resumeLabel) \(timer.timeLeftString)")
                             } else {
                                 Image(systemName: "pause.fill")
-                                    .font(.system(size: 10))
                                 Text(pauseButtonHovered ? pauseLabel : timer.timeLeftString)
                             }
                         }
@@ -486,14 +509,6 @@ struct TBPopoverView: View {
                         .font(.system(.body).monospacedDigit())
                         .frame(maxWidth: .infinity)
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(timer.state.isPaused ? Color.yellow.opacity(0.18) : Color.green.opacity(0.18))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5)
-                            .stroke(timer.state.isPaused ? Color.yellow.opacity(0.35) : Color.green.opacity(0.35), lineWidth: 1)
-                    )
                     .onHover { over in
                         pauseButtonHovered = over
                     }
@@ -562,19 +577,13 @@ struct TBPopoverView: View {
                             .foregroundColor(.secondary)
                     }
                     Spacer()
-                    if timer.dailyGoalMinutes == 0 {
-                        Text(TBTimer.formatDuration(minutes: timer.dailyCompletedMinutes))
-                            .font(.system(size: 11, weight: .medium).monospacedDigit())
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("\(TBTimer.formatDuration(minutes: timer.dailyCompletedMinutes)) / \(TBTimer.formatDuration(minutes: timer.dailyGoalMinutes))")
-                            .font(.system(size: 11, weight: .medium).monospacedDigit())
-                            .foregroundColor(.secondary)
-                    }
+                    Text("\(TBTimer.formatDuration(minutes: timer.dailyCompletedMinutes)) / \(TBTimer.formatDuration(minutes: timer.dailyGoalMinutes))")
+                        .font(.system(size: 11, weight: .medium).monospacedDigit())
+                        .foregroundColor(.secondary)
                 }
                 ProgressView(value: timer.dailyGoalMinutes == 0 ? 0 : min(1.0, Double(timer.dailyCompletedMinutes) / Double(timer.dailyGoalMinutes)))
                     .progressViewStyle(.linear)
-                    .accentColor(timer.dailyGoalMinutes > 0 && timer.dailyCompletedMinutes >= timer.dailyGoalMinutes ? Color.green.opacity(0.8) : Color.primary.opacity(0.55))
+                    .accentColor(Color.primary)
             }
             .padding(.vertical, 2)
             .contentShape(Rectangle())
@@ -608,7 +617,7 @@ struct TBPopoverView: View {
                     SettingsView().environmentObject(timer)
                 }
             }
-            .frame(height: 180)
+            .frame(height: 190)
             .contentShape(Rectangle())
             .onTapGesture {
                 NSApp.keyWindow?.makeFirstResponder(nil)

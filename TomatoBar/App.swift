@@ -36,7 +36,7 @@ class TBStatusItem: NSObject, NSApplicationDelegate {
         popover.behavior = .transient
         popover.contentViewController = NSViewController()
         popover.contentViewController?.view = NSHostingView(rootView: view)
-        popover.contentSize = CGSize(width: 275, height: 395)
+        popover.contentSize = CGSize(width: 275, height: 400)
 
         statusBarItem = NSStatusBar.system.statusItem(
             withLength: NSStatusItem.variableLength
@@ -46,17 +46,22 @@ class TBStatusItem: NSObject, NSApplicationDelegate {
         statusBarItem?.button?.action = #selector(TBStatusItem.togglePopover(_:))
     }
 
-    func setTitle(title: String?) {
+    func setTitle(title: String?, color: NSColor? = nil) {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineHeightMultiple = 0.9
         paragraphStyle.alignment = NSTextAlignment.center
 
+        var attributes: [NSAttributedString.Key: Any] = [
+            NSAttributedString.Key.font: digitFont,
+            NSAttributedString.Key.paragraphStyle: paragraphStyle
+        ]
+        if let color = color {
+            attributes[NSAttributedString.Key.foregroundColor] = color
+        }
+
         let attributedTitle = NSAttributedString(
             string: title != nil ? " \(title!)" : "",
-            attributes: [
-                NSAttributedString.Key.font: digitFont,
-                NSAttributedString.Key.paragraphStyle: paragraphStyle
-            ]
+            attributes: attributes
         )
         statusBarItem?.button?.attributedTitle = attributedTitle
     }
