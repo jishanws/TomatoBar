@@ -31,15 +31,10 @@ private struct EditableIntervalRow: View {
                 value = max(range.lowerBound, min(range.upperBound, value))
                 NSApp.keyWindow?.makeFirstResponder(nil)
             })
-            .textFieldStyle(PlainTextFieldStyle())
+            .textFieldStyle(RoundedBorderTextFieldStyle())
             .font(.system(size: 11, weight: .medium).monospacedDigit())
             .multilineTextAlignment(.center)
-            .padding(.horizontal, 4)
-            .padding(.vertical, 2)
-            .frame(width: 38, height: 18)
-            .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(4)
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+            .frame(width: 44)
             if !suffix.isEmpty {
                 Text(suffix)
                     .font(.system(size: 11))
@@ -95,30 +90,20 @@ private struct EditableDailyGoalRow: View {
             TextField("", value: hoursBinding, formatter: formatter, onCommit: {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             })
-            .textFieldStyle(PlainTextFieldStyle())
+            .textFieldStyle(RoundedBorderTextFieldStyle())
             .font(.system(size: 11, weight: .medium).monospacedDigit())
             .multilineTextAlignment(.center)
-            .padding(.horizontal, 2)
-            .padding(.vertical, 2)
-            .frame(width: 30, height: 18)
-            .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(4)
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+            .frame(width: 34)
             Text("h")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
             TextField("", value: minsBinding, formatter: formatter, onCommit: {
                 NSApp.keyWindow?.makeFirstResponder(nil)
             })
-            .textFieldStyle(PlainTextFieldStyle())
+            .textFieldStyle(RoundedBorderTextFieldStyle())
             .font(.system(size: 11, weight: .medium).monospacedDigit())
             .multilineTextAlignment(.center)
-            .padding(.horizontal, 2)
-            .padding(.vertical, 2)
-            .frame(width: 30, height: 18)
-            .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(4)
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+            .frame(width: 34)
             Text("m")
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
@@ -501,7 +486,6 @@ struct TBPopoverView: View {
                                 Image(systemName: "play.fill")
                                 Text("\(resumeLabel) \(timer.timeLeftString)")
                             } else {
-                                Image(systemName: "pause.fill")
                                 Text(pauseButtonHovered ? pauseLabel : timer.timeLeftString)
                             }
                         }
@@ -583,13 +567,9 @@ struct TBPopoverView: View {
                 }
                 ProgressView(value: timer.dailyGoalMinutes == 0 ? 0 : min(1.0, Double(timer.dailyCompletedMinutes) / Double(timer.dailyGoalMinutes)))
                     .progressViewStyle(.linear)
-                    .accentColor(Color.primary)
+                    .accentColor(timer.dailyGoalMinutes > 0 && timer.dailyCompletedMinutes >= timer.dailyGoalMinutes ? .green : .red)
             }
             .padding(.vertical, 2)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                NSApp.keyWindow?.makeFirstResponder(nil)
-            }
 
             Picker("", selection: $activeChildView) {
                 Text(NSLocalizedString("TBPopoverView.intervals.label",
@@ -618,10 +598,6 @@ struct TBPopoverView: View {
                 }
             }
             .frame(height: 190)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                NSApp.keyWindow?.makeFirstResponder(nil)
-            }
 
             Group {
                 Button {
@@ -655,10 +631,13 @@ struct TBPopoverView: View {
             )
         #endif
             .padding(12)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                NSApp.keyWindow?.makeFirstResponder(nil)
-            }
+            .background(
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        NSApp.keyWindow?.makeFirstResponder(nil)
+                    }
+            )
             .onChange(of: activeChildView) { _ in
                 NSApp.keyWindow?.makeFirstResponder(nil)
             }
