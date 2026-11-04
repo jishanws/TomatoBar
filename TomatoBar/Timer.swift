@@ -25,6 +25,8 @@ class TBTimer: ObservableObject {
     @Published var timeLeftString: String = ""
     @Published var timer: DispatchSourceTimer?
     @Published var state: TBStateMachineStates = .idle
+    @Published var sessionStore = TBSessionStore()
+    private var sessionStartTime: Date?
 
     init() {
         /*
@@ -247,6 +249,7 @@ class TBTimer: ObservableObject {
             return
         }
         remainingTime = 0
+        sessionStartTime = Date()
         TBStatusItem.shared.setIcon(name: .work)
         player.playWindup()
         player.startTicking()
@@ -270,6 +273,15 @@ class TBTimer: ObservableObject {
     private func onWorkFinish(context _: TBStateMachine.Context) {
         consecutiveWorkIntervals += 1
         player.playDing()
+
+        let start = sessionStartTime ?? Date().addingTimeInterval(-Double(workIntervalLength * 60))
+        sessionStore.addSession(
+            startTime: start,
+            endTime: Date(),
+            durationMinutes: workIntervalLength,
+            note: sessionStore.currentTaskNote
+        )
+        sessionStartTime = nil
 
         checkDayRollover()
         let previousMinutes = dailyCompletedMinutes
@@ -373,6 +385,7 @@ class TBTimer: ObservableObject {
     private func onIdleStart(context _: TBStateMachine.Context) {
         stopTimer()
         remainingTime = 0
+        sessionStartTime = nil
         player.stopTicking()
         TBStatusItem.shared.setIcon(name: .idle)
         TBStatusItem.shared.setTitle(title: nil)
