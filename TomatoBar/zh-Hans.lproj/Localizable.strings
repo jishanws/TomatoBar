@@ -6,7 +6,7 @@
 "IntervalsView.workIntervalsInSet.label" = "一组中工作的次数:";
 "IntervalsView.workIntervalsInSet.help" = "每组在长时间休息后的工作次数";
 "IntervalsView.dailyGoal.label" = "每日目标:";
-"IntervalsView.dailyGoal.help" = "每天完成番茄钟的目标数量";
+"IntervalsView.dailyGoal.help" = "每日目标专注时长";
 "SettingsView.shortcut.label" = "开始 / 停止";
 "SettingsView.shortcut.pauseResume.label" = "暂停 / 继续";
 "SettingsView.stopAfterBreak.label" = "在休息后停止";
@@ -33,4 +33,4 @@
 "TBTimer.onRestFinish.title" = "休息结束";
 "TBTimer.onRestFinish.body" = "继续努力!";
 "TBTimer.goalReached.title" = "每日目标达成! 🎉";
-"TBTimer.goalReached.body" = "恭喜你! 今天已完成 %d 个番茄钟目标。";
+"TBTimer.goalReached.body" = "恭喜你! 今天已达成 %@ 的专注目标。";

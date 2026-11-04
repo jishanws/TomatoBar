@@ -6,7 +6,7 @@
 "IntervalsView.workIntervalsInSet.label" = "Work intervals in a set:";
 "IntervalsView.workIntervalsInSet.help" = "Number of working intervals in the set, after which a lengthy break taken";
 "IntervalsView.dailyGoal.label" = "Daily goal:";
-"IntervalsView.dailyGoal.help" = "Target number of completed Pomodoros per day";
+"IntervalsView.dailyGoal.help" = "Target focused time per day";
 "SettingsView.shortcut.label" = "Start / Stop";
 "SettingsView.shortcut.pauseResume.label" = "Pause / Resume";
 "SettingsView.stopAfterBreak.label" = "Stop after break";
@@ -33,4 +33,4 @@
 "TBTimer.onRestFinish.title" = "Break is over";
 "TBTimer.onRestFinish.body" = "Keep up the good work!";
 "TBTimer.goalReached.title" = "Daily Goal Achieved! 🎉";
-"TBTimer.goalReached.body" = "Congratulations! You completed your target of %d Pomodoros today.";
+"TBTimer.goalReached.body" = "Congratulations! You completed your daily focus target of %@ today.";

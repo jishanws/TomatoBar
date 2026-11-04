@@ -49,12 +49,12 @@ private struct IntervalsView: View {
             }
             .help(NSLocalizedString("IntervalsView.workIntervalsInSet.help",
                                     comment: "Work intervals in set hint"))
-            Stepper(value: $timer.dailyGoal, in: 1 ... 30) {
+            Stepper(value: $timer.dailyGoalMinutes, in: 15 ... 720, step: 15) {
                 HStack {
                     Text(NSLocalizedString("IntervalsView.dailyGoal.label",
                                            comment: "Daily goal label"))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("\(timer.dailyGoal)")
+                    Text(TBTimer.formatDuration(minutes: timer.dailyGoalMinutes))
                 }
             }
             .help(NSLocalizedString("IntervalsView.dailyGoal.help",
@@ -209,7 +209,7 @@ struct TBPopoverView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
-                    if timer.dailyCompletedCount >= timer.dailyGoal {
+                    if timer.dailyCompletedMinutes >= timer.dailyGoalMinutes {
                         Text(NSLocalizedString("TBPopoverView.dailyGoal.achieved", comment: "Goal Achieved"))
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundColor(.green)
@@ -219,13 +219,13 @@ struct TBPopoverView: View {
                             .foregroundColor(.secondary)
                     }
                     Spacer()
-                    Text("\(timer.dailyCompletedCount) / \(timer.dailyGoal) 🍅")
+                    Text("\(TBTimer.formatDuration(minutes: timer.dailyCompletedMinutes)) / \(TBTimer.formatDuration(minutes: timer.dailyGoalMinutes))")
                         .font(.system(size: 11, weight: .medium).monospacedDigit())
                         .foregroundColor(.secondary)
                 }
-                ProgressView(value: min(1.0, Double(timer.dailyCompletedCount) / Double(max(1, timer.dailyGoal))))
+                ProgressView(value: min(1.0, Double(timer.dailyCompletedMinutes) / Double(max(1, timer.dailyGoalMinutes))))
                     .progressViewStyle(.linear)
-                    .accentColor(timer.dailyCompletedCount >= timer.dailyGoal ? .green : .red)
+                    .accentColor(timer.dailyCompletedMinutes >= timer.dailyGoalMinutes ? .green : .red)
             }
             .padding(.vertical, 2)
 
